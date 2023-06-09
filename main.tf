@@ -86,7 +86,7 @@ module "s3" {
   create_bucket = local.using_existing_bucket ? false : true
 
   bucket = local.bucket
-  acl    = "private"
+  acl    = null
 
   force_destroy = var.bucket_force_destroy
 
@@ -95,10 +95,13 @@ module "s3" {
   }
 
   # S3 bucket-level Public Access Block configuration
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
+  # block_public_acls       = true
+  # block_public_policy     = true
+  # ignore_public_acls      = true
+  # restrict_public_buckets = true
+
+  control_object_ownership = true
+  object_ownership         = "ObjectWriter"
 
   tags = module.label.tags
 }
