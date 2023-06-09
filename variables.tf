@@ -134,3 +134,16 @@ variable "paper_mc_build" {
   type        = string
   default     = "latest"
 }
+
+variable "hostname_dynv6" {
+  description = "Dynv6 hostname to update with the server's public IP"
+  type        = string
+  default     = ""
+}
+
+variable "token_dynv6" {
+  description = "Dynv6 API token"
+  type        = string
+  default     = ""
+}
+

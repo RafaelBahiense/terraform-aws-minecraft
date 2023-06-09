@@ -184,6 +184,67 @@ download_paper_mc_server() {
     # And finally download it to our local MC dir
     $WGET -O ${mc_root}/$MINECRAFT_JAR https://api.papermc.io/v2/projects/paper/versions/$MC_VERS/builds/$BUILD/downloads/paper-$MC_VERS-$BUILD.jar
 }
+
+create_and_setup_dynv6_updater() {
+  # Create dynv6 updater script
+  cat <<DYNV6 > ${mc_root}/dynv6-updater.sh
+#!/bin/bash
+
+HOSTNAME_DYNV6="****.dynv6.net"
+TOKEN_DYNV6="****"
+
+# Get current IP address from AWS
+IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+
+# Update dynv6.net with current IP address
+echo "IPv4 adress has changed -> update ..."
+curl -s "https://ipv4.dynv6.com/api/update?hostname=${hostname_dynv6}&token=${token_dynv6}&ipv4=$IP"
+echo "---"
+
+
+DYNV6
+  
+  /bin/chmod +x ${mc_root}/dynv6-updater.sh
+
+  # Init script for starting, stopping
+  cat <<INIT > /etc/init.d/dynv6-updater
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:          dynv6-updater
+# Required-Start:    $local_fs $network
+# Required-Stop:     $local_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Start dynv6-updater
+### END INIT INFO
+
+start() {
+  echo "Starting dynv6-updater..."
+  start-stop-daemon --start --background --chdir ${mc_root} --exec ${mc_root}/dynv6-updater.sh
+}
+
+stop() {
+}
+
+case \$1 in
+  start)
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  restart)
+    start
+    ;;
+esac
+exit 0
+INIT
+
+  /bin/chmod +x /etc/init.d/dynv6-updater
+  /usr/sbin/update-rc.d dynv6-updater.sh defaults
+
+}
+
 MINECRAFT_JAR="minecraft_server.jar"
 case $OS in
   Ubuntu*)
@@ -205,7 +266,7 @@ esac
 # To force a new server version, remove the server JAR from S3 bucket
 if [[ ! -e "${mc_root}/$MINECRAFT_JAR" ]]; then
   if [[ -z "${paper_mc_build}" ]]; then
-  download_minecraft_server
+    download_minecraft_server
   else
     download_paper_mc_server
   fi
@@ -224,6 +285,17 @@ CRON
 #Tue Jan 27 21:40:00 UTC 2015
 eula=true
 EULA
+
+# Create dynv6 updater script if dynv6.net hostname and token are provided
+if [[ -n "${hostname_dynv6}" ]] && [[ -n "${token_dynv6}" ]]; then
+  create_and_setup_dynv6_updater
+fi
+
+# Dirty fix
+/bin/touch ${mc_root}/minecraft.pid
+/bin/chown $SSH_USER ${mc_root}/minecraft.pid
+/bin/chmod 664 ${mc_root}/minecraft.pid
+/bin/chgrp $SSH_USER ${mc_root}/minecraft.pid
 
 # Not root
 /bin/chown -R $SSH_USER ${mc_root}

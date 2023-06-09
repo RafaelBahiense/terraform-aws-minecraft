@@ -170,6 +170,8 @@ data "template_file" "user_data" {
     java_mx_mem    = var.java_mx_mem
     java_ms_mem    = var.java_ms_mem
     paper_mc_build = var.paper_mc_build
+    hostname_dynv6 = var.hostname_dynv6
+    token_dynv6    = var.token_dynv6
   }
 }
 
