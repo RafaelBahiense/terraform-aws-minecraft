@@ -169,6 +169,7 @@ data "template_file" "user_data" {
     mc_type        = var.mc_type   
     java_mx_mem    = var.java_mx_mem
     java_ms_mem    = var.java_ms_mem
+    paper_mc_build = var.paper_mc_build
   }
 }
 

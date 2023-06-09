@@ -129,3 +129,8 @@ variable "allowed_cidrs" {
   default     = "0.0.0.0/0"
 }
 
+variable "paper_mc_build" {
+  description = "PaperMC build to use"
+  type        = string
+  default     = "latest"
+}

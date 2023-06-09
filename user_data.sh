@@ -149,6 +149,41 @@ download_minecraft_server() {
 
 }
 
+download_paper_mc_server() {
+  
+    WGET=$(which wget)
+
+    # version_manifest.json lists available PaperMC versions of minecraft server
+    $WGET -O "${mc_root}"/version_manifest.json https://api.papermc.io/v2/projects/paper
+
+    # print manifest to console
+    cat "${mc_root}"/version_manifest.json
+
+    # Find latest version number if user wants that version (the default)
+    if [[ "${mc_version}" == "latest" ]]; then
+      MC_VERS=$(jq -r '.versions[-1]' "${mc_root}"/version_manifest.json)
+    else
+      MC_VERS=$(jq -r '.versions[] | select(.versions == "'"$mc_version"'") | .version' "${mc_root}"/version_manifest.json)
+    fi
+
+    # Then overwrite version_manifest.json with MC_VERS
+    echo "$MC_VERS" > "${mc_root}"/version_manifest.json
+
+    # build_manifest.json lists available PaperMC builds of the version
+    $WGET -O "${mc_root}"/build_manifest.json https://api.papermc.io/v2/projects/paper/versions/"$MC_VERS"
+
+    if [[ "${paper_mc_build}" == "latest" ]]; then
+      BUILD=$(jq -r '.builds[-1]' "${mc_root}"/build_manifest.json)
+    else
+      BUILD=$(jq -r '.builds[] | select(.builds == "'"$paper_mc_build"'") | .build' "${mc_root}"/build_manifest.json)
+    fi
+
+    # Then overwrite build_manifest.json with BUILD
+    echo $BUILD > ${mc_root}/build_manifest.json
+  
+    # And finally download it to our local MC dir
+    $WGET -O ${mc_root}/$MINECRAFT_JAR https://api.papermc.io/v2/projects/paper/versions/$MC_VERS/builds/$BUILD/downloads/paper-$MC_VERS-$BUILD.jar
+}
 MINECRAFT_JAR="minecraft_server.jar"
 case $OS in
   Ubuntu*)
@@ -169,7 +204,11 @@ esac
 # Download server if it doesn't exist on S3 already (existing from previous install)
 # To force a new server version, remove the server JAR from S3 bucket
 if [[ ! -e "${mc_root}/$MINECRAFT_JAR" ]]; then
+  if [[ -z "${paper_mc_build}" ]]; then
   download_minecraft_server
+  else
+    download_paper_mc_server
+  fi
 fi
 
 # Cron job to sync data to S3 every five mins
